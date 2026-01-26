@@ -24,3 +24,4 @@ urllib3==2.5.0
 daphne==4.2.1
 autobahn==22.7.1
 gunicorn==23.0.0
+whitenoise==6.8.2
