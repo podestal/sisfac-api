@@ -1,5 +1,5 @@
 from django.db import models
-# from django.conf import settings
+from django.conf import settings
 from django.core.exceptions import ValidationError
 
 # inventario
@@ -59,6 +59,68 @@ class Product(models.Model):
         # Ensures validation runs even when not using ModelForms
         self.full_clean()
         return super().save(*args, **kwargs)
+
+class Profile(models.Model):
+
+    ROLE_CHOICES = [
+        ("PR", "Propietario"),
+        ("AD", "Administrador"),
+        ("EM", "Empleado"),
+        ("PA", "Administrador de la plataforma"),
+    ]
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    business = models.ForeignKey(
+        Business,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        help_text="Obligatorio para todos los roles excepto Administrador de la plataforma"
+    )
+    role = models.CharField(max_length=2, choices=ROLE_CHOICES, default="EM")
+    employee_id = models.CharField(max_length=50, blank=True, null=True, help_text="ID de empleado en el negocio")
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+    address = models.TextField(blank=True, null=True)
+    is_active = models.BooleanField(default=True, help_text="Indica si el perfil está activo")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'business'],
+                name='unique_user_business',
+                condition=models.Q(business__isnull=False)
+            ),
+        ]
+        verbose_name = "Perfil"
+        verbose_name_plural = "Perfiles"
+
+    def clean(self):
+        """Valida que los roles no-PA tengan un negocio asignado"""
+        super().clean()
+        if self.role != "PA" and not self.business:
+            raise ValidationError({
+                "business": "Este campo es obligatorio para roles que no sean Administrador de la plataforma."
+            })
+        if self.role == "PA" and self.business:
+            raise ValidationError({
+                "business": "Los Administradores de la plataforma no deben estar asociados a un negocio."
+            })
+
+    def save(self, *args, **kwargs):
+        """Asegura que la validación se ejecute"""
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    @property
+    def is_platform_admin(self):
+        """Retorna True si el usuario es administrador de la plataforma"""
+        return self.role == "PA"
+
+    def __str__(self):
+        business_name = self.business.name if self.business else "Plataforma"
+        return f"{self.user.get_full_name() or self.user.username} - {business_name} ({self.get_role_display()})"
 
 # facturacion
 # compras
