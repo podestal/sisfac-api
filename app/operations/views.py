@@ -1,4 +1,5 @@
 from rest_framework import viewsets
+from rest_framework.pagination import PageNumberPagination
 from . import models, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -13,19 +14,95 @@ class BusinessViewSet(viewsets.ModelViewSet):
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
-    queryset = models.Category.objects.all()
+    queryset = models.Category.objects.select_related('business').all()
     serializer_class = serializers.CategorySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        Filtra categorías por el negocio del usuario autenticado.
+        """
+        queryset = super().get_queryset()
+
+        # Obtener el negocio del usuario desde su perfil
+        try:
+            profile = models.Profile.objects.get(user=self.request.user)
+            # Si es admin de plataforma, puede ver todas las categorías
+            if profile.is_platform_admin:
+                business_id = self.request.query_params.get('business_id', None)
+                if business_id:
+                    queryset = queryset.filter(business_id=business_id)
+            else:
+                # Usuarios normales solo ven categorías de su negocio
+                if profile.business:
+                    queryset = queryset.filter(business=profile.business)
+                else:
+                    # Si no tiene negocio, no puede ver categorías
+                    return models.Category.objects.none()
+        except models.Profile.DoesNotExist:
+            # Si no tiene perfil, no puede ver categorías
+            return models.Category.objects.none()
+
+        return queryset.order_by('name')
+
+
+class ProductPagination(PageNumberPagination):
+    """Paginación personalizada para productos"""
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 10
 
 
 class ProductViewSet(viewsets.ModelViewSet):
-    queryset = models.Product.objects.all()
+    queryset = models.Product.objects.select_related('category', 'business').all()
     serializer_class = serializers.ProductSerializer
+    pagination_class = ProductPagination
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        Filtra productos por:
+        - Negocio del usuario autenticado (basado en su perfil)
+        - Categoría (si se proporciona como query parameter)
+        """
+        queryset = super().get_queryset()
+
+        # Obtener el negocio del usuario desde su perfil
+        try:
+            profile = models.Profile.objects.get(user=self.request.user)
+            # Si es admin de plataforma, puede ver todos los productos
+            if profile.is_platform_admin:
+                business_id = self.request.query_params.get('business_id', None)
+                if business_id:
+                    queryset = queryset.filter(business_id=business_id)
+            else:
+                # Usuarios normales solo ven productos de su negocio
+                if profile.business:
+                    queryset = queryset.filter(business=profile.business)
+                else:
+                    # Si no tiene negocio, no puede ver productos
+                    return models.Product.objects.none()
+        except models.Profile.DoesNotExist:
+            # Si no tiene perfil, no puede ver productos
+            return models.Product.objects.none()
+
+        # Filtrar por categoría si se proporciona
+        category_id = self.request.query_params.get('category', None)
+        if category_id:
+            queryset = queryset.filter(category_id=category_id)
+        
+        return queryset.order_by('-created_at')
 
 
 class ProfileViewSet(viewsets.ModelViewSet):
     queryset = models.Profile.objects.select_related('user', 'business').all()
     serializer_class = serializers.ProfileSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    # permission_classes = [permissions.IsAdminUser]
+
+    def get_permissions(self):
+        if self.action == 'get_my_profile':
+            return [permissions.IsAuthenticated()]
+        return [permissions.IsAdminUser()]
 
     @action(detail=False, methods=['get'], url_path='me', url_name='me')
     def get_my_profile(self, request):
