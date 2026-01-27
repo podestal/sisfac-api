@@ -59,11 +59,15 @@ class ProductViewSet(viewsets.ModelViewSet):
     pagination_class = ProductPagination
     permission_classes = [permissions.IsAuthenticated]
 
+    # Campos permitidos para ordenamiento
+    ORDERING_FIELDS = ['name', 'code', 'stock', 'buy_price', 'sell_price', 'created_at']
+
     def get_queryset(self):
         """
         Filtra productos por:
         - Negocio del usuario autenticado (basado en su perfil)
         - Categoría (si se proporciona como query parameter)
+        Ordena por el campo especificado en el parámetro 'ordering'
         """
         queryset = super().get_queryset()
 
@@ -90,8 +94,21 @@ class ProductViewSet(viewsets.ModelViewSet):
         category_id = self.request.query_params.get('category', None)
         if category_id:
             queryset = queryset.filter(category_id=category_id)
+
+        # Ordenamiento dinámico
+        ordering = self.request.query_params.get('ordering', '-created_at')
         
-        return queryset.order_by('-created_at')
+        # Validar que el campo de ordenamiento sea permitido
+        # Remover el prefijo '-' si existe para validar
+        ordering_field = ordering.lstrip('-')
+        
+        if ordering_field in self.ORDERING_FIELDS:
+            queryset = queryset.order_by(ordering)
+        else:
+            # Si el campo no es válido, usar orden por defecto
+            queryset = queryset.order_by('-created_at')
+
+        return queryset
 
 
 class ProfileViewSet(viewsets.ModelViewSet):
