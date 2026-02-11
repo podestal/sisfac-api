@@ -102,3 +102,14 @@ class ProfileMeSerializer(serializers.ModelSerializer):
     def get_business_name(self, obj):
         """Retorna el nombre del negocio o None si no existe"""
         return obj.business.name if obj.business else None
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Order
+        fields = '__all__'
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.OrderItem
+        fields = '__all__'

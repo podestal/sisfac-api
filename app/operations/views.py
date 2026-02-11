@@ -155,3 +155,16 @@ class ProfileViewSet(viewsets.ModelViewSet):
                 {'detail': 'No se encontró un perfil para este usuario.'},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+class OrderViewSet(viewsets.ModelViewSet):
+    queryset = models.Order.objects.select_related('business', 'document').all()
+    serializer_class = serializers.OrderSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return self.queryset.filter(business=self.request.user.profile.business)
+
+class OrderItemViewSet(viewsets.ModelViewSet):
+    queryset = models.OrderItem.objects.select_related('order', 'product').all()
+    serializer_class = serializers.OrderItemSerializer
+    permission_classes = [permissions.IsAuthenticated]

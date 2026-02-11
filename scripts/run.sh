@@ -24,7 +24,7 @@ python manage.py migrate
 
 if [ "$ENVIRONMENT" = "development" ]; then
     echo "Starting server with Daphne for development..."
-    exec daphne -b 0.0.0.0 -p 8000 sisfac.asgi:application
+    exec python manage.py runserver 0.0.0.0:8000
 else
     echo "Starting server with Gunicorn for production..."
     exec gunicorn sisfac.wsgi:application --bind 0.0.0.0:8000 --timeout=5 --threads=10
