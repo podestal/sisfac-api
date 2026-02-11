@@ -1,5 +1,6 @@
 from rest_framework import viewsets
 from rest_framework.pagination import PageNumberPagination
+from django.db.models import Q
 from . import models, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -67,6 +68,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         Filtra productos por:
         - Negocio del usuario autenticado (basado en su perfil)
         - Categoría (si se proporciona como query parameter)
+        - Búsqueda por nombre o código (parámetro 'search')
         Ordena por el campo especificado en el parámetro 'ordering'
         """
         queryset = super().get_queryset()
@@ -94,6 +96,18 @@ class ProductViewSet(viewsets.ModelViewSet):
         category_id = self.request.query_params.get('category', None)
         if category_id:
             queryset = queryset.filter(category_id=category_id)
+
+        # Búsqueda por nombre o código
+        search = self.request.query_params.get('search')
+        if search:
+            # Limpiar espacios en blanco del término de búsqueda
+            search = search.strip()
+            if search:
+                # Construir el filtro de búsqueda
+                # Buscar en nombre O código
+                search_filter = Q(name__icontains=search) | Q(code__icontains=search)
+                # Aplicar el filtro
+                queryset = queryset.filter(search_filter)
 
         # Ordenamiento dinámico
         ordering = self.request.query_params.get('ordering', '-created_at')

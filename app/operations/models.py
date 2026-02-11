@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
+import uuid
 
 # inventario
 
@@ -122,5 +123,4 @@ class Profile(models.Model):
         business_name = self.business.name if self.business else "Plataforma"
         return f"{self.user.get_full_name() or self.user.username} - {business_name} ({self.get_role_display()})"
 
-# facturacion
 # compras
