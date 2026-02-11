@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from taxes.models import Document
 import uuid
 
 # inventario
@@ -123,4 +124,21 @@ class Profile(models.Model):
         business_name = self.business.name if self.business else "Plataforma"
         return f"{self.user.get_full_name() or self.user.username} - {business_name} ({self.get_role_display()})"
 
-# compras
+
+class Order(models.Model):
+    business = models.ForeignKey(Business, on_delete=models.CASCADE)
+    document = models.ForeignKey(Document, on_delete=models.SET_NULL, null=True, blank=True)
+    status = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.IntegerField(default=1)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    discount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
