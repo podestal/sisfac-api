@@ -3,7 +3,7 @@ import uuid
 
 # facturacion
 
-class Document(models.Model):
+class SunatRecord(models.Model):
     """
     Model to store the final SUNAT document with response data
     Created after SUNAT accepts/rejects the request
