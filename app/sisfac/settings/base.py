@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'core',
     'operations',
     'corsheaders',
+    'taxes',
 ]
 
 MIDDLEWARE = [
