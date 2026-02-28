@@ -1,7 +1,6 @@
 from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from taxes.models import SunatRecord
 import uuid
 
 # inventario
@@ -127,7 +126,7 @@ class Profile(models.Model):
 
 class Order(models.Model):
     business = models.ForeignKey(Business, on_delete=models.CASCADE)
-    document = models.ForeignKey(SunatRecord, on_delete=models.SET_NULL, null=True, blank=True)
+    # document = models.ForeignKey(SunatRecord, on_delete=models.SET_NULL, null=True, blank=True)
     status = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
